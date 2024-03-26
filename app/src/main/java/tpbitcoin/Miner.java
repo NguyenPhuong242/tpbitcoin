@@ -2,6 +2,7 @@ package tpbitcoin;
 
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.ScriptBuilder;
+import org.bouncycastle.jcajce.provider.asymmetric.EC;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -23,7 +24,15 @@ public class Miner {
      */
     // TODO
     private static Block setValidNonce(Block block){
-        return block;
+        while (true) {
+            long nonce = (long) (Math.random() * Long.MAX_VALUE);
+            block.setNonce(nonce);
+            Sha256Hash hash = block.getHash();
+            BigInteger difficultyTarget = block.getDifficultyTargetAsInteger();
+            if (Sha256Hash.wrap(hash.getBytes()).compareTo(Sha256Hash.wrap(difficultyTarget.toByteArray())) < 0) {
+                return block;
+            }
+        }
     }
 
     /* borrowed from bitcoinj.core, not the real thing, for testing only
@@ -35,8 +44,10 @@ public class Miner {
         inputBuilder.data(new byte[]{(byte) txCounter, (byte) (txCounter++ >>8)});
         coinbase.addInput(new TransactionInput(params, coinbase,
                 inputBuilder.build().getProgram()));
+        
+        byte[] compressedKey = ECKey.fromPublicOnly(pubKey).getPubKey();
         coinbase.addOutput(new TransactionOutput(params, coinbase, Coin.parseCoin(amount),
-                ScriptBuilder.createP2PKOutputScript(ECKey.fromPublicOnly(pubKey)).getProgram()));
+                ScriptBuilder.createP2PKOutputScript(compressedKey).getProgram()));
         return coinbase;
     }
 
@@ -49,8 +60,18 @@ public class Miner {
      */
     // TODO
     public Block mine(Block lastBlock, List<Transaction> txs, byte[] pubKey){
+        
+        txs.add(0, generateCoinbase(params, ECKey.fromPublicOnly(pubKey).getPubKey(), "6.25"));
+        Block newBlock = new Block(params, lastBlock.getVersion(), lastBlock.getHash(), null, lastBlock.getTimeSeconds(), Block.EASIEST_DIFFICULTY_TARGET, 10000, txs);
+        newBlock.setDifficultyTarget(SOMEWHAT_HARDER_DIFFICULTY_TARGET);
+        newBlock.getMerkleRoot();
+        for(Transaction tx: txs){
+            newBlock.addTransaction(tx);
+        }
+        setValidNonce(newBlock);
+        newBlock.verifyHeader();
+        return newBlock;
 
-        return null;
     }
 }
 

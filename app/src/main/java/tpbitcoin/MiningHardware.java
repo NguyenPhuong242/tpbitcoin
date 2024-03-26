@@ -35,7 +35,8 @@ public class MiningHardware {
 
     // TODO
     public double operatingDailyCost(double unitkWhCost){
-        return 1.0;
+        double dailyCost = (getPower() * 24 * unitkWhCost) / 1000;
+        return dailyCost;
     }
 
 

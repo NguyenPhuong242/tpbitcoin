@@ -10,11 +10,14 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
 public class HashRateEstimator {
-    private final int duration; //duration of each experience, in milliseconds
+    private final int duration; // duration of each experience, in milliseconds
     private final int numberOfTries; // number of experience
 
-    /** Create a new object for estimating the number of SHA256 hashs the host can perform per second
-    ** @param duration: (milli-seconds) duration of each experiment
+    /**
+     * Create a new object for estimating the number of SHA256 hashs the host can
+     * perform per second
+     ** 
+     * @param duration:     (milli-seconds) duration of each experiment
      * @param numberOfTries : number of experiments to run
      */
     public HashRateEstimator(int duration, int numberOfTries) {
@@ -25,11 +28,27 @@ public class HashRateEstimator {
     /**
      * @return : return the hashrate (hash/second)
      */
-    public double estimate(){
+    public double estimate() {
         byte[] bytes;
         MessageDigest md = Sha256Hash.newDigest();
-        // TODO
-        return 0.0;
+
+        long totalHashes = 0;
+        long totalTime = duration * numberOfTries;
+
+        for(int i = 0; i < numberOfTries;i++){
+            bytes = new byte[64];
+            long startTime = System.currentTimeMillis();
+            long endTime = startTime + duration;
+
+            while(System.currentTimeMillis() < endTime){
+                md.update(bytes);
+                md.digest();
+                totalHashes++;
+            }
+        }
+
+        return (double)totalHashes / (totalTime / 1000.0);
+
     }
 
 }

@@ -34,17 +34,37 @@ public class HourlyConsumption {
 
     // TODO
     public static long getFinnishConsumptionLast24h(String apiKey){
-        return 10L;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime yesterday = now.minus(1, ChronoUnit.DAYS);
+        return getFinnishConsumption(yesterday, now, apiKey).stream().mapToLong(HourlyConsumption::getConsumption).sum();
     }
 
     // TODO
     public static List<HourlyConsumption> getFinnishConsumption(LocalDateTime startTime, LocalDateTime endTime, String apiKey){
-        return null;
+        String json = queryFinnishAPI(startTime, endTime, apiKey);
+        Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss").create();
+        Type listType = new TypeToken<ArrayList<HourlyConsumption>>(){}.getType();
+        return gson.fromJson(json, listType);
     }
 
     // TODO
     private static String queryFinnishAPI(LocalDateTime startTime, LocalDateTime endTime, String apiKey){
-        return "json string";
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
+        String start = startTime.format(formatter);
+        String end = endTime.format(formatter);
+        HttpClient client = HttpClient.newHttpClient();
+        // https://data.fingrid.fi/api/datasets/{datasetId}/data[?startTime][&endTime][&format][&oneRowPerTimePeriod][&page][&pageSize][&locale][&sortBy][&sortOrder]
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://data.fingrid.fi/api/datasets/124/data?" + start + "&" + end))
+                .header("x-api-key", apiKey)
+                .build();
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+        return response.body();
     }
 
 }

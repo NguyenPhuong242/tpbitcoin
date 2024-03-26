@@ -68,7 +68,7 @@ public class Explorer {
 
     // TODO
     public String getLatestHash(){
-        return "";
+        return request("q/latesthash");
     }
 
 
@@ -79,7 +79,8 @@ public class Explorer {
      * @return byte array encoding the block
      */
     public byte[] getRawblockFromHash(String hash){
-        return null;
+        String answer = request("rawblock/"+hash+"?format=hex");
+        return hexStringToByte(answer);
     }
 
     // TODO
@@ -92,10 +93,9 @@ public class Explorer {
      */
 	
     public Block getBlockFromHash(NetworkParameters params, String hash){
-        return null;
+        byte[] rawblock = getRawblockFromHash(hash);
+        return fromRawblockToBlock(params, rawblock);
     }
-
-
 
     /**
      * Convert a block in raw form (array of bytes) to a  bitcoinj Block object

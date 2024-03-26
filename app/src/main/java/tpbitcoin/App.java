@@ -19,48 +19,105 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.math.BigInteger;
 
 public class App {
 
-
-
     public static void main(String[] args) {
 
-        //Q1  hashrate
-        double localHashrate = new HashRateEstimator(5000,5).estimate();
-
-        // Q2: latest  block  from mainet (bitcoin blockchain) and its predecessor
-        Context context   = new Context(new UnitTestParams()); // required  for working with bitcoinj
+        // Q1 hashrate
+        double localHashrate = new HashRateEstimator(5000, 5).estimate();
+        System.out.println(localHashrate);
+        // Q2: latest block from mainet (bitcoin blockchain) and its predecessor
+        Context context = new Context(new UnitTestParams()); // required for working with bitcoinj
         Explorer explorer = new Explorer(); // for interacting with blockchain.info API
+
+        String latestHash = explorer.getLatestHash();
+        Block latestBlock = explorer.getBlockFromHash(context.getParams(), latestHash);
+
+        System.out.println("Nonce: " + latestBlock.getNonce());
+        System.out.println("Difficulty: " + latestBlock.getDifficultyTargetAsInteger());
+
         // Q3 Some TXs
+        System.out.print("Transaction 1: ");
+        System.out.println(latestBlock.getTransactions().get(0).toHexString());
+        System.out.print("Transaction 2: ");
+        System.out.println(latestBlock.getTransactions().get(1).toHexString());
 
         // Q4 Mine a new block
         Miner miner = new Miner(context.getParams());
-        // empty list of tx since creating txs, even fake ones, requires some work
+        Block newBlock = miner.mine(latestBlock, new ArrayList<Transaction>(), new byte[0]);
         ArrayList<Transaction> txs = new ArrayList<>();
-        // TODO : mine a new block
 
+        // Q5 Est ce que votre bloc sera accepté par le réseau ? Pour quelle(s) raison(s) ?
+        System.out.println("Non, car le bloc n'a pas de transactions");
+
+        // Nous allons maintenant estimer l’énergie consommée par le réseau.
+        // Q6 Quelle est la probabilité de miner ? C’est-à-dire quel la probabilité
+        // qu’une fois choisi le nonce,
+        // le hash du bloc (vue comme un entier) soit inférieure au niveau de difficulté
+        // actuel (vu comme
+        // un entier) ? Combien faut-il calculer de hashs en moyenne avant de miner un
+        // nouveau bloc
+        // en fonction du niveau de difficulté ? Ces informations sont aussi fournis par
+        // les explorateurs
+        // de blokchain. Écrire une méthode dans la classe ImpactUtils qui calcule le
+        // temps moyen
+        // nécessaire pour miner un bloc en fonction du hashrate du mineur et du niveau
+        // de difficulté
+        // (donné sous forme de BigInteger).
+        // Q7 En reprenant ce que vous avez trouvé à la question 1, déterminez le nombre
+        // d’années moyen
+        // pour miner un bloc sur votre machine.
+
+
+        BigInteger difficulty = BigInteger.valueOf(2).pow(32);
+        long predictedTime = ImpactUtils.expectedMiningTime((long) localHashrate, difficulty);
+        System.out.println("Predicted time: " + predictedTime + "s");
+
+
+        // Dans le réseaux, les mineurs sont en compétition permanente pour miner de
+        // nouveaux blocs
+        // (la création de blocs ne peut se faire en parallèle puisqu’il est nécessaire
+        // de connaître l’empreinte
+        // du bloc précédent ; un bloc valide mais trouvé trop tard doit être jeté.). Le
+        // niveau de difficulté est
+        // ajusté périodiquement, en fonction de la capacité de hachage globale de
+        // l’ensemble des mineurs
+        // de façon à ce qu’un nouveau bloc n’émerge que tous les 10 minutes. Plus
+        // précisément, tous les N
+        // blocs (N = 2016), le protocole évalue le temps total T pris pour miner les N
+        // derniers blocs et
+        // ajuste la difficulté en conséquence (Chaque bloc possède dans son en-tête sa
+        // date de création) . Si
+        // T > N ∗ 10mins, la difficulté est diminuée et est augmentée dans le cas
+        // contraire
+
+        // Q8: Quel est le hashrate actuel de l’ensemble du réseau ? Ajoutez une méthode
+        // à la classe Explorer qui permet de retrouver cette valeur. Ou calculez-le
+        // directement à partir du niveau de difficulté courant (ajoutez une méthode
+        // dans la classe ImpactUtils)
+        long totaleReseauHashRate = ImpactUtils.globalHashRate(latestBlock.getDifficultyTargetAsInteger());
+        System.out.println("Total network hashrate: " + totaleReseauHashRate + " h/s");
 
         System.out.println("\n");
         // Q9/Q10 energy w/ most profitable hardware
+        long networkEnergyConsumption = ImpactUtils.calculateEnergyConsumptionLast24h(100,200);
+        System.out.println("Network energy consumption: " + networkEnergyConsumption + " kWh");
         Gson gson = new GsonBuilder()
-                .registerTypeAdapter(YearMonth.class,new YearMonthAdapter())
+                .registerTypeAdapter(YearMonth.class, new YearMonthAdapter())
                 .create();
         List<MiningHardware> hardwares = new ArrayList<>();
 
         URL resource = App.class.getClassLoader().getResource("hardware.json");
-        try(BufferedReader reader = new BufferedReader(new FileReader(resource.getFile()))) {
-            Type listType = new TypeToken<ArrayList<MiningHardware>>(){}.getType();
-            hardwares = gson.fromJson(reader,listType);
+        try (BufferedReader reader = new BufferedReader(new FileReader(resource.getFile()))) {
+            Type listType = new TypeToken<ArrayList<MiningHardware>>() {
+            }.getType();
+            hardwares = gson.fromJson(reader, listType);
         } catch (Exception e) {
-            System.err.println("error opening/reading hardware.json "+ e.getMessage());
+            System.err.println("error opening/reading hardware.json " + e.getMessage());
         }
 
-
-
     }
-
-
-
 
 }
